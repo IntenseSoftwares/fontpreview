@@ -3,7 +3,7 @@
 # vim: se ts=4 et syn=python:
 
 # created by: matteo.guadrini
-# edited by: Parijat Das / https://t.me/parijatsoftwares 
+# edited and updted by: Parijat Das @ https://t.me/parijatsoftwares
 # fontpreview -- fontpreview
 #
 #     Copyright (C) 2020 Matteo Guadrini <matteo.guadrini@hotmail.it>
@@ -21,54 +21,25 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# region imports
 import os
 from PIL import Image, ImageDraw, ImageFont
 
-# endregion
-
-# region variable
 CALC_POSITION = {
     'center': lambda ixy, fxy: ((ixy[0] - fxy[0]) // 2, (ixy[1] - fxy[1]) // 2),
-    'top': lambda ixy, fxy: ((ixy[0] - fxy[0]) // 2, 0),
-    'below': lambda ixy, fxy: ((ixy[0] - fxy[0]) // 2, (ixy[1] - fxy[1])),
+    'top': lambda ixy, fxy: ((ixy[0] - fxy[0]) // 2, 20),
+    'below': lambda ixy, fxy: ((ixy[0] - fxy[0]) // 2, (ixy[1] - fxy[1]) - 20),
     'rcenter': lambda ixy, fxy: ((ixy[0] - fxy[0]), (ixy[1] - fxy[1]) // 2),
-    'rtop': lambda ixy, fxy: ((ixy[0] - fxy[0]), 0),
-    'rbelow': lambda ixy, fxy: ((ixy[0] - fxy[0]), (ixy[1] - fxy[1])),
-    'lcenter': lambda ixy, fxy: (0, (ixy[1] - fxy[1]) // 2),
-    'ltop': lambda ixy, fxy: (0, 0),
-    'lbelow': lambda ixy, fxy: (0, (ixy[1] - fxy[1])),
+    'rtop': lambda ixy, fxy: ((ixy[0] - fxy[0]), 20),
+    'rbelow': lambda ixy, fxy: ((ixy[0] - fxy[0]), (ixy[1] - fxy[1]) - 20),
+    'lcenter': lambda ixy, fxy: (20, (ixy[1] - fxy[1]) // 2),
+    'ltop': lambda ixy, fxy: (20, 20),
+    'lbelow': lambda ixy, fxy: (20, (ixy[1] - fxy[1]) - 20),
 }
 
 
-# endregion
-
-# region classes
 class FontPreview:
-    """
-    Class that represents the preview of a font
-    """
-
-    def __init__(self, font,
-                 font_size=64,
-                 font_text='a b c d e f',
-                 color_system='RGB',
-                 bg_color='white',
-                 fg_color='black',
-                 dimension=(700, 327)
-                 ):
-        """
-        Object that represents the preview of a font
-
-        :param font: font file
-        :param font_size: font size. Default is 64.
-        :param font_text: font text representation. Default is 'a b c d e f'.
-        :param color_system: color system string. Default is 'RGB'.
-        :param bg_color: background color of preview. Default is 'white'.
-        :param fg_color: foreground or font color of preview. Default is 'black'.
-        :param dimension: dimension of preview. Default is 700x327.
-        """
-        # Define properties
+    def __init__(self, font, font_size=64, font_text='a b c d e f', color_system='RGB',
+                 bg_color='white', fg_color='black', dimension=(700, 327)):
         self.image = None
         self.font_size = font_size
         self.font_text = font_text
@@ -79,109 +50,61 @@ class FontPreview:
         self.fg_color = fg_color
         self.dimension = dimension
         self.font_position = CALC_POSITION['center'](self.dimension, self.font.getsize(self.font_text))
-        # Create default image
+        self.reposition = "center"
         self.draw()
 
     def __str__(self):
-        """
-        String representation of font preview
-
-        :return: string
-        """
         return "font_name:{font},font_size:{size},text:{text},text_position:{position},dimension:{dimension}".format(
             font=self.font.getname(), size=self.font_size, text=self.font_text,
             position=self.font_position, dimension=self.dimension
         )
 
     def __resize(self):
-        """
-        Resize the font if it exceeds the size of the background
-
-        :return: None
-        """
         img = ImageDraw.Draw(self.image)
-        # Check font size
         text_size = img.multiline_textsize(self.font_text, self.font)
-        while text_size[0] > self.dimension[0] or text_size[1] > self.dimension[1]:
+        while text_size > self.dimension:
             self.font_size = self.font_size - 2
             self.font = ImageFont.truetype(font=self.font.path, size=self.font_size)
             text_size = img.multiline_textsize(self.font_text, self.font)
 
     def save(self, path=os.path.join(os.path.abspath(os.getcwd()), 'fontpreview.png')):
-        """
-        Save the preview font
-
-        :param path: path where you want to save the preview font
-        :return: None
-        """
         self.image.save(path)
 
-    def draw(self, align='left'):
-        """
-        Draw image with text based on properties of this object
-
-        :param align: alignment of text. Available 'left', 'center' and 'right'
-        :return: None
-        """
-        # Set an image
-        if self.bg_image:
-            self.image = Image.open(self.bg_image)
-        # Draw background with flat color
+    def draw(self):
+        if self.reposition in ['center', 'lcenter', 'rcenter']:
+            if self.bg_image:
+                self.image = Image.open(self.bg_image)
+            else:
+                self.image = Image.new(self.color_system, self.dimension, color=self.bg_color)
+            draw = ImageDraw.Draw(self.image)
+            text_width, text_height = draw.textsize(self.font_text, font=self.font)
+            y = (self.dimension[1] - text_height) // 2
+            if self.reposition == 'center':
+                x = (self.dimension[0] - text_width) // 2
+            elif self.reposition == 'lcenter':
+                x = 20  # Adjust the x position for lcenter alignment
+            elif self.reposition == 'rcenter':
+                x = self.dimension[0] - text_width - 20  # Adjust the x position for rcenter alignment
+            draw.text((x, y), self.font_text, fill=self.fg_color, font=self.font, align='left')
         else:
-            self.image = Image.new(self.color_system, self.dimension, color=self.bg_color)
-
-        # Create image drawer
-        draw = ImageDraw.Draw(self.image)
-        text_size = draw.multiline_textsize(self.font_text, self.font)
-
-        # Adjust font size if necessary to fit within the image
-        if text_size[0] > self.dimension[0] or text_size[1] > self.dimension[1]:
-            font_ratio = min(self.dimension[0] / text_size[0], self.dimension[1] / text_size[1])
-            self.font_size = int(self.font_size * font_ratio)
-            self.font = ImageFont.truetype(font=self.font.path, size=self.font_size)
-            text_size = draw.multiline_textsize(self.font_text, self.font)
-
-        # Calculate the position to center the text
-        x_center = (self.dimension[0] - text_size[0]) // 2
-        y_center = (self.dimension[1] - text_size[1]) // 2
-        self.font_position = (x_center, y_center)
-
-        # Draw the text
-        draw.text(self.font_position, self.font_text, fill=self.fg_color, font=self.font, align=align)
+            if self.bg_image:
+                self.image = Image.open(self.bg_image)
+            else:
+                self.image = Image.new(self.color_system, self.dimension, color=self.bg_color)
+            draw = ImageDraw.Draw(self.image)
+            draw.text(self.font_position, self.font_text, fill=self.fg_color, font=self.font, align='left')
 
     def show(self):
-        """
-        Displays this image.
-
-        :return: None
-        """
         self.image.show()
 
     def set_font_size(self, size):
-        """
-        Set size of font
-
-        :param size: size of font
-        :return: None
-        """
-        # Set size of font
         self.font_size = size
         self.font = ImageFont.truetype(font=self.font.path, size=self.font_size)
         self.__resize()
-        # Create image
         self.draw()
 
     def set_text_position(self, position):
-        """
-        Set position of text
-
-        :param position: Position can be a tuple with x and y axis, or a string.
-            The strings available are 'center', 'top', 'below', 'rcenter', 'rtop', 'rbelow', 'lcenter', 'ltop'
-            and 'lbelow'.
-
-        :return: None
-        """
-        # Create image drawer
+        self.reposition = position
         img = ImageDraw.Draw(self.image)
         if isinstance(position, tuple):
             self.font_position = position
@@ -189,7 +112,4 @@ class FontPreview:
             self.font_position = CALC_POSITION.get(position, CALC_POSITION['center'])(
                 self.dimension, img.multiline_textsize(self.font_text, self.font)
             )
-        # Create image
         self.draw()
-
-# endregion
